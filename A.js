@@ -87,7 +87,7 @@ var addButtonToContainer = (function () {
                     'background: transparent !important; ' +
                     'display: block; ' +
                     'padding-top: 4px; ' +
-                    'padding-bottom: 8px; ' +
+                    'padding-bottom: 0px; ' +
                     'text-align: left; ' +
                     'z-index: 999999; ' +
                 '}\n\n' +
