@@ -86,7 +86,7 @@ var addButtonToContainer = (function () {
                 '#under-movie-div { ' +
                     'background: transparent !important; ' +
                     'display: block; ' +
-                    'padding-top: 4px; ' +
+                    'padding-top: 0px; ' +
                     'padding-bottom: 0px; ' +
                     'text-align: left; ' +
                     'z-index: 999999; ' +
@@ -102,7 +102,7 @@ var addButtonToContainer = (function () {
                     'height: auto !important; ' +
                     'line-height: 20px !important; ' +
                     'margin-right: 6px; ' +
-                    'padding: 2px 10px !important; ' +
+                    'padding: 0px 0px !important; ' +
                 '}\n\n' +
                 // - - - - - - - - - - - - - - - - - - -
                 '#watch7-headline { ' +
