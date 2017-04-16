@@ -93,16 +93,16 @@ var addButtonToContainer = (function () {
                 '}\n\n' +
                 '.under-movie-div-button { ' +
                     'background-image: linear-gradient(to top, #F6F6F6 0px, #FCFCFC 100%) !important; ' +
-                    'border: 0px solid #CCCCCC; ' +
-                    'border-radius: 0px; ' +
+                    'border: 1px solid #CCCCCC; ' +
+                    'border-radius: 2px; ' +
                     'color: #666666 !important; ' +
                     'font-size: 12px !important; ' +
                     'font-family: arial, sans-serif !important; ' +
                     'font-weight: 400 !important; ' +
                     'height: auto !important; ' +
-                    'line-height: 0px !important; ' +
-                    'margin-right: 0px; ' +
-                    'padding: 0px 0px !important; ' +
+                    'line-height: 20px !important; ' +
+                    'margin-right: 6px; ' +
+                    'padding: 2px 10px !important; ' +
                 '}\n\n' +
                 // - - - - - - - - - - - - - - - - - - -
                 '#watch7-headline { ' +
