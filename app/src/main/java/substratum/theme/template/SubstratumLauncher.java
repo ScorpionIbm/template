@@ -12,6 +12,7 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.v7.app.AlertDialog;
 import android.util.Log;
 import android.widget.Toast;
@@ -21,6 +22,7 @@ import com.github.javiersantos.piracychecker.PiracyCheckerUtils;
 import com.github.javiersantos.piracychecker.enums.InstallerID;
 import com.github.javiersantos.piracychecker.enums.PiracyCheckerCallback;
 import com.github.javiersantos.piracychecker.enums.PiracyCheckerError;
+import com.github.javiersantos.piracychecker.enums.PirateApp;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -37,11 +39,13 @@ import static substratum.theme.template.ThemerConstants.ENFORCE_INTERNET_CHECK;
 import static substratum.theme.template.ThemerConstants.ENFORCE_MINIMUM_SUBSTRATUM_VERSION;
 import static substratum.theme.template.ThemerConstants.MINIMUM_SUBSTRATUM_VERSION;
 import static substratum.theme.template.ThemerConstants.PIRACY_CHECK;
+import static substratum.theme.template.ThemerConstants.SUBSTRATUM_FILTER_CHECK;
 import static substratum.theme.template.ThemerConstants.THEME_READY_GOOGLE_APPS;
 
 public class SubstratumLauncher extends Activity {
 
     private static final String SUBSTRATUM_PACKAGE_NAME = "projekt.substratum";
+    private Boolean mVerified = false;
 
     private void startAntiPiracyCheck() {
         if (PIRACY_CHECK && BASE_64_LICENSE_KEY.length() == 0)
@@ -58,7 +62,7 @@ public class SubstratumLauncher extends Activity {
             }
 
             @Override
-            public void dontAllow(PiracyCheckerError error) {
+            public void dontAllow(@NonNull PiracyCheckerError error, PirateApp pirateApp) {
                 String parse = String.format(getString(R.string.toast_unlicensed),
                         getString(R.string.ThemeName));
                 Toast.makeText(SubstratumLauncher.this, parse, Toast.LENGTH_SHORT).show();
@@ -132,8 +136,15 @@ public class SubstratumLauncher extends Activity {
                 if (isPackageInstalled(blacklistedApplication)) {
                     Toast.makeText(this, R.string.unauthorized,
                             Toast.LENGTH_LONG).show();
+                    finish();
                     return;
                 }
+        }
+        if (SUBSTRATUM_FILTER_CHECK && !mVerified) {
+            Toast.makeText(this, R.string.unauthorized,
+                    Toast.LENGTH_LONG).show();
+            finish();
+            return;
         }
         if (ENFORCE_MINIMUM_SUBSTRATUM_VERSION) {
             try {
@@ -150,18 +161,24 @@ public class SubstratumLauncher extends Activity {
             } catch (Exception e) {
                 showOutdatedSubstratumToast();
             }
+            finish();
         } else {
             Intent intent = SubstratumLoader.launchThemeActivity(getApplicationContext(),
                     getIntent(), getString(R.string.ThemeName), getPackageName());
             startActivity(intent);
             finish();
         }
-
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        Intent intent = getIntent();
+        mVerified = intent.getBooleanExtra("certified", false);
+        if (SUBSTRATUM_FILTER_CHECK) Log.d("SubstratumLauncher", "This theme is " +
+                ((mVerified) ? "certified" : "uncertified") + " by substratum!");
+
         SharedPreferences sharedPref = getPreferences(Context.MODE_PRIVATE);
         if (ENFORCE_INTERNET_CHECK) {
             if (sharedPref.getInt("last_version", 0) == BuildConfig.VERSION_CODE) {
@@ -195,34 +212,53 @@ public class SubstratumLauncher extends Activity {
         if (addon.exists()) {
             ArrayList<String> apps = new ArrayList<>();
             boolean updated = false;
-            String data_path = "/data/app/";
-            String[] app_folder = {"com.google.android.gm",
+            boolean incomplete = false;
+            PackageManager packageManager = this.getPackageManager();
+            StringBuilder app_name = new StringBuilder();
+            String[] packageNames = {"com.google.android.gm",
                     "com.google.android.googlequicksearchbox",
                     "com.android.vending",
                     "com.google.android.apps.plus",
                     "com.google.android.talk",
                     "com.google.android.youtube",
                     "com.google.android.apps.photos",
-                    "com.google.android.contacts",
-                    "com.google.android.dialer",
                     "com.google.android.inputmethod.latin"};
-            String folder1 = "-1";
-            String folder2 = "-2";
-            String apk_path = "/base.apk";
-            StringBuilder app_name = new StringBuilder();
+            String[] extraPackageNames = {"com.google.android.contacts",
+                    "com.google.android.dialer"};
 
-            for (String anApp_folder : app_folder) {
-                File app1 = new File(data_path + anApp_folder + folder1 + apk_path);
-                File app2 = new File(data_path + anApp_folder + folder2 + apk_path);
-                if (app1.exists() || app2.exists()) {
+            for (String packageName : extraPackageNames) {
+                try {
+                    ApplicationInfo appInfo = packageManager.getApplicationInfo(packageName, 0);
+                    if ((appInfo.flags & ApplicationInfo.FLAG_SYSTEM) == 0) {
+                        incomplete = true;
+                        apps.add(packageManager.getApplicationLabel(appInfo).toString());
+                    }
+                } catch (Exception e) {
+                    // Package not found
+                }
+            }
+
+            if (!incomplete) {
+                for (String packageName : packageNames) {
                     try {
-                        updated = true;
-                        ApplicationInfo app =
-                                this.getPackageManager().getApplicationInfo(anApp_folder, 0);
-                        String label = getPackageManager().getApplicationLabel(app).toString();
-                        apps.add(label);
+                        ApplicationInfo appInfo = packageManager.getApplicationInfo(packageName, 0);
+                        if ((appInfo.flags & ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0) {
+                            updated = true;
+                            apps.add(packageManager.getApplicationLabel(appInfo).toString());
+                        }
                     } catch (Exception e) {
-                        // Suppress warning
+                        // Package not found
+                    }
+                }
+                for (String packageName : extraPackageNames) {
+                    try {
+                        ApplicationInfo appInfo = packageManager.getApplicationInfo(packageName, 0);
+                        if ((appInfo.flags & ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0) {
+                            updated = true;
+                            apps.add(packageManager.getApplicationLabel(appInfo).toString());
+                        }
+                    } catch (Exception e) {
+                        // Package not found
                     }
                 }
             }
@@ -236,10 +272,12 @@ public class SubstratumLauncher extends Activity {
                 }
             }
 
-            if (!updated) {
+            if (!updated && !incomplete) {
                 launch();
             } else {
-                String parse = String.format(getString(R.string.theme_ready_updated),
+                int stringInt = incomplete ? R.string.theme_ready_incomplete :
+                        R.string.theme_ready_updated;
+                String parse = String.format(getString(stringInt),
                         app_name);
 
                 new AlertDialog.Builder(this, R.style.DialogStyle)
